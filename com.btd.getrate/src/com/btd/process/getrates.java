@@ -99,12 +99,7 @@ public class getrates extends CustomProcess {
 				Object objParser = jsonParser.parse(response.body());
 				JSONObject mainResult = (JSONObject) objParser;
 				BigDecimal rate = Env.ZERO;
-				if (config.getType().equals(X_BTD_ConfigRate.TYPE_BCV)) {
-					rate = new BigDecimal(mainResult.get("price_old").toString());
-				} else {
-					rate = new BigDecimal(mainResult.get("price").toString());
-				}
-
+				rate = new BigDecimal(mainResult.get("price").toString());
 				BigDecimal ExistRate = MConversionRate.getRate(config.getC_Currency_ID(), config.getC_Currency_ID_To(),
 						TimestampUtil.now(), config.getC_ConversionType_ID(), getAD_Client_ID(), 0);
 
