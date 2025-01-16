@@ -6,6 +6,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import org.compiere.model.MConversionRate;
@@ -56,16 +60,26 @@ public class getrates extends CustomProcess {
 					JSONParser jsonParser = new JSONParser();
 					Object objParser = jsonParser.parse(response.body());
 					JSONObject mainResult = (JSONObject) objParser;
-					if (count == 1)
-						Rate1 = new BigDecimal(mainResult.get("price").toString());
-					else
+					if (count == 1) {
+						String DateStr = mainResult.get("last_update").toString().substring(0, 10);
+						DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+						Date xdate = (Date) df.parse(DateStr.toString());
+						long time = xdate.getTime();
+
+						Timestamp ts = new Timestamp(time);
+
+						if (ts.equals(TimestampUtil.today()))
+							Rate1 = new BigDecimal(mainResult.get("price").toString());
+						else
+							Rate1 = new BigDecimal(mainResult.get("price_old").toString());
+					} else
 						Rate2 = new BigDecimal(mainResult.get("price").toString());
 
 					count++;
 				}
 
 				BigDecimal avg_rate = Rate1.add(Rate2).divide(new BigDecimal(2.0),
-						config.getC_Currency().getStdPrecision(), RoundingMode.HALF_UP);
+						config.getC_Currency().getStdPrecision(), RoundingMode.HALF_DOWN);
 
 				BigDecimal ExistRate = MConversionRate.getRate(config.getC_Currency_ID(), config.getC_Currency_ID_To(),
 						TimestampUtil.now(), config.getC_ConversionType_ID(), getAD_Client_ID(), 0);
@@ -99,7 +113,23 @@ public class getrates extends CustomProcess {
 				Object objParser = jsonParser.parse(response.body());
 				JSONObject mainResult = (JSONObject) objParser;
 				BigDecimal rate = Env.ZERO;
-				rate = new BigDecimal(mainResult.get("price").toString());
+
+				if (config.getType().equals(X_BTD_ConfigRate.TYPE_BCV)) {
+					String DateStr = mainResult.get("last_update").toString().substring(0, 10);
+					DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+					Date xdate = (Date) df.parse(DateStr.toString());
+					long time = xdate.getTime();
+
+					Timestamp ts = new Timestamp(time);
+
+					if (ts.equals(TimestampUtil.today()))
+						rate = new BigDecimal(mainResult.get("price").toString());
+					else
+						rate = new BigDecimal(mainResult.get("price_old").toString());
+				} else {
+					rate = new BigDecimal(mainResult.get("price").toString());
+				}
+
 				BigDecimal ExistRate = MConversionRate.getRate(config.getC_Currency_ID(), config.getC_Currency_ID_To(),
 						TimestampUtil.now(), config.getC_ConversionType_ID(), getAD_Client_ID(), 0);
 
